@@ -1,8 +1,9 @@
 <template>
   <div class="graph">
     <Bar
+      v-if="loaded"
       :chart-options="chartOptions"
-      :chart-data="chartData"
+      :chart-data="graphData"
       :chart-id="chartId"
       :dataset-id-key="datasetIdKey"
       :plugins="plugins"
@@ -15,6 +16,7 @@
 </template>
 
 <script>
+import axios from 'axios';
 import { Bar } from 'vue-chartjs'
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale } from 'chart.js'
 
@@ -23,6 +25,16 @@ ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
 export default {
   name: 'BarChart',
   components: { Bar },
+  created() {
+    axios
+      .get("https://randomuser.me/api/", {
+        params: {
+          results: "10",
+        },
+      })
+      .then((response) => (this.users = response.data.results))
+      .catch((response) => console.log(response));
+  },
   props: {
     chartId: {
       type: String,
@@ -53,13 +65,23 @@ export default {
       default: () => {}
     }
   },
-  data() {
-    return {
-      chartData: {
+  async mounted () {
+    this.loaded = false
+
+    try {
+      const userlist  = await axios
+      .get("https://randomuser.me/api/", {
+        params: {
+          results: "10",
+        },
+      })
+      const userData = userlist.data.results.map(result => result['registered'].age)
+
+      this.graphData = {
         labels: [ 'January', 'February', 'March', 'April', 'May', 'June', 'July' ],
         datasets: [{
           label: 'My First Dataset',
-          data: [65, 59, 80, 81, 56, 55, 40],
+          data: userData,
           backgroundColor: [
             'rgba(255, 99, 132, 0.2)',
             'rgba(255, 159, 64, 0.2)',
@@ -80,7 +102,17 @@ export default {
           ],
           borderWidth: 1
         }]
-      },
+      }
+
+      this.loaded = true
+    } catch (e) {
+      console.error(e)
+    }
+  },
+  data() {
+    return {
+      loaded: false,
+      graphData: null,
       chartOptions: {
         responsive: true,
         scales: {
